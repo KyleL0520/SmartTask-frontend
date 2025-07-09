@@ -8,6 +8,7 @@ import 'package:frontend/src/models/user.dart';
 import 'package:frontend/src/util/services/api/task.dart';
 import 'package:frontend/src/widgets/app_bar/app_bar.dart';
 import 'package:frontend/src/widgets/input/selector.dart';
+import 'package:intl/intl.dart';
 
 @RoutePage()
 class StatisticsScreen extends StatefulWidget {
@@ -28,13 +29,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   void initState() {
     super.initState();
-    _tasks = TaskService().getTasks();
+    _tasks = TaskService().getTasks(isApproved: true);
   }
 
   double _calculatePercent(String status, List<Task> tasks) {
     if (tasks.isEmpty) return 0;
     final total = tasks.length;
-    final filtered = tasks.where((t) => t.status == status).length;
+    final int filtered;
+    if (status == 'Expired') {
+      filtered = tasks.where((t) => t.isExpired).length;
+    } else {
+      filtered = tasks.where((t) => t.status == status).length;
+    }
     print('$status count: $filtered of $total');
 
     return (filtered / total * 100).toDouble();
@@ -73,9 +79,17 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
                   final filteredTasks =
                       snapshot.data!.where((task) {
-                        final date = task.createdAt;
-                        return !date.isBefore(selectedStart) &&
-                            !date.isAfter(selectedEnd);
+                        DateTime? deadline;
+                        try {
+                          deadline = DateFormat(
+                            'd MMMM yyyy',
+                          ).parse(task.deadlinesDate);
+                        } catch (_) {
+                          return false;
+                        }
+
+                        return !deadline.isBefore(selectedStart) &&
+                            !deadline.isAfter(selectedEnd);
                       }).toList();
 
                   print(
@@ -107,9 +121,34 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   List<PieChartSectionData> getSections(List<Task> tasks) {
-    final completed = _calculatePercent('Completed', tasks);
-    final pending = _calculatePercent('Pending', tasks);
-    final expired = _calculatePercent('Expired', tasks);
+    if (tasks.isEmpty) {
+      return [
+        PieChartSectionData(
+          color: Colors.grey,
+          value: 100,
+          title: '0%',
+          titleStyle: TextStyle(
+            color: TAppTheme.primaryColor,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ];
+    }
+
+    final int completedCount =
+        tasks.where((t) => t.status == 'Completed').length;
+    final int pendingCount =
+        tasks.where((t) => t.status == 'Pending' && !t.isExpired).length;
+    final int expiredCount = tasks.where((t) => t.isExpired).length;
+
+    final int totalCount = completedCount + pendingCount + expiredCount;
+
+    double percent(int count) => (count / totalCount) * 100;
+
+    final completed = percent(completedCount);
+    final pending = percent(pendingCount);
+    final expired = percent(expiredCount);
 
     print('Completed $completed');
     print('pending $pending');
@@ -122,7 +161,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         title: '${completed.toStringAsFixed(2)}%',
         titleStyle: TextStyle(
           color: TAppTheme.primaryColor,
-          fontSize: 16,
+          fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -132,7 +171,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         title: '${pending.toStringAsFixed(2)}%',
         titleStyle: TextStyle(
           color: TAppTheme.primaryColor,
-          fontSize: 16,
+          fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -142,7 +181,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         title: '${expired.toStringAsFixed(2)}%',
         titleStyle: TextStyle(
           color: TAppTheme.primaryColor,
-          fontSize: 16,
+          fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
       ),

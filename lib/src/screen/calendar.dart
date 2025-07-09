@@ -8,9 +8,10 @@ import 'package:frontend/src/models/task.dart';
 import 'package:frontend/src/util/services/api/task.dart';
 import 'package:frontend/src/util/utils.dart';
 import 'package:frontend/src/widgets/app_bar/app_bar.dart';
+import 'package:frontend/src/widgets/display/ui_notify.dart';
 import 'package:intl/intl.dart';
 
-final List<String> status = ['Pending', 'Completed', 'Expired'];
+final List<String> status = ['Pending', 'Completed'];
 
 @RoutePage()
 class CalendarScreen extends StatefulWidget {
@@ -33,14 +34,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final now = DateTime.now();
     dateTime = now;
     date = DateFormat('dd-MM-yyyy').format(now);
-    _personalTasks = TaskService().getTasks();
-    _groupTasks = TaskService().getTasks(isGroupTask: true);
+    _personalTasks = TaskService().getTasks(isGroupTask: false);
+    _groupTasks = TaskService().getTasks(isGroupTask: true, isApproved: true);
   }
 
   Future<void> refreshTask() async {
-    _personalTasks = TaskService().getTasks();
-    _groupTasks = TaskService().getTasks(isGroupTask: true);
+    _personalTasks = TaskService().getTasks(isGroupTask: false);
+    _groupTasks = TaskService().getTasks(isGroupTask: true, isApproved: true);
     setState(() {});
+  }
+
+  Future<void> _updateTaskStatus({
+    required Task task,
+    required String status,
+  }) async {
+    task.status = status;
+
+    try {
+      final response = await TaskService().updateTaskStatus(task);
+
+      if (response == null) return;
+
+      if (!mounted) return;
+      await refreshTask();
+    } catch (e) {
+      if (!mounted) return;
+      UINotify.error(context, e);
+    }
   }
 
   @override
@@ -179,17 +199,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           }
 
                           final filteredTasks =
-                              snapshot.data!
-                                  .where(
-                                    (t) =>
-                                        t.status.toLowerCase() ==
-                                            selectedStatus.toLowerCase() &&
-                                        DateFormat(
-                                              'dd-MM-yyyy',
-                                            ).format(t.createdAt) ==
-                                            date,
-                                  )
-                                  .toList();
+                              snapshot.data!.where((t) {
+                                try {
+                                  final deadlineDate = DateFormat(
+                                    'd MMMM yyyy',
+                                  ).parse(t.deadlinesDate);
+                                  final deadlineTime = DateFormat(
+                                    'hh : mm a',
+                                  ).parse(t.deadlinesTime);
+
+                                  final deadline = DateTime(
+                                    deadlineDate.year,
+                                    deadlineDate.month,
+                                    deadlineDate.day,
+                                    deadlineTime.hour,
+                                    deadlineTime.minute,
+                                  );
+
+                                  final formattedDeadline = DateFormat(
+                                    'dd-MM-yyyy',
+                                  ).format(deadline);
+
+                                  return t.status.toLowerCase() ==
+                                          selectedStatus.toLowerCase() &&
+                                      formattedDeadline == date;
+                                } catch (e) {
+                                  return false;
+                                }
+                              }).toList();
 
                           return Column(
                             children:
@@ -214,30 +251,47 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     child: Row(
                                       children: [
                                         const SizedBox(width: 5),
-                                        Container(
-                                          width: 18,
-                                          height: 18,
-                                          margin: const EdgeInsets.only(
-                                            right: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color:
-                                                task.status == 'Completed'
-                                                    ? AppColors.black
-                                                    : Colors.transparent,
-
-                                            border: Border.all(
-                                              width: 2,
-                                              color: Utils.getPriorityColor(
-                                                task.priority,
-                                              ),
+                                        GestureDetector(
+                                          onTap:
+                                              () =>
+                                                  task.status == 'Completed'
+                                                      ? _updateTaskStatus(
+                                                        task: task,
+                                                        status: 'Pending',
+                                                      )
+                                                      : _updateTaskStatus(
+                                                        task: task,
+                                                        status: 'Completed',
+                                                      ),
+                                          child: Container(
+                                            width: 16,
+                                            height: 16,
+                                            margin: const EdgeInsets.only(
+                                              right: 10,
                                             ),
-                                          ),
-                                          child: Icon(
-                                            Icons.check,
-                                            color: TAppTheme.primaryColor,
-                                            size: 12,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                width: 2,
+                                                color: Utils.getPriorityColor(
+                                                  task.priority,
+                                                ),
+                                              ),
+                                              color:
+                                                  task.status == 'Completed'
+                                                      ? AppColors.black
+                                                      : Colors.transparent,
+                                            ),
+                                            child:
+                                                task.status == 'Completed'
+                                                    ? Icon(
+                                                      Icons.check,
+                                                      color:
+                                                          TAppTheme
+                                                              .primaryColor,
+                                                      size: 12,
+                                                    )
+                                                    : SizedBox(),
                                           ),
                                         ),
                                         TextButton(
@@ -255,16 +309,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                             ),
                                           ),
                                         ),
-
-                                        task.status == 'Expired'
-                                            ? Text(
-                                              'Expired',
-                                              textAlign: TextAlign.end,
-                                              style: TextStyle(
-                                                color: AppColors.red,
-                                              ),
-                                            )
-                                            : Text(''),
+                                        const Spacer(),
+                                        if (task.isExpired)
+                                          Text(
+                                            'Expired',
+                                            style: TextStyle(
+                                              color: AppColors.red,
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   );
@@ -295,16 +347,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           }
 
                           final filteredTasks =
-                              snapshot.data!
-                                  .where(
-                                    (t) =>
-                                        t.status == selectedStatus &&
-                                        DateFormat(
-                                              'dd-MM-yyyy',
-                                            ).format(t.createdAt) ==
-                                            date,
-                                  )
-                                  .toList();
+                              snapshot.data!.where((t) {
+                                try {
+                                  final deadlineDate = DateFormat(
+                                    'd MMMM yyyy',
+                                  ).parse(t.deadlinesDate);
+                                  final deadlineTime = DateFormat(
+                                    'hh : mm a',
+                                  ).parse(t.deadlinesTime);
+
+                                  final deadline = DateTime(
+                                    deadlineDate.year,
+                                    deadlineDate.month,
+                                    deadlineDate.day,
+                                    deadlineTime.hour,
+                                    deadlineTime.minute,
+                                  );
+
+                                  final formattedDeadline = DateFormat(
+                                    'dd-MM-yyyy',
+                                  ).format(deadline);
+
+                                  return t.status.toLowerCase() ==
+                                          selectedStatus.toLowerCase() &&
+                                      formattedDeadline == date;
+                                } catch (e) {
+                                  return false;
+                                }
+                              }).toList();
 
                           return Column(
                             children:
@@ -329,29 +399,59 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     child: Row(
                                       children: [
                                         const SizedBox(width: 5),
-                                        Container(
-                                          width: 16,
-                                          height: 16,
-                                          margin: const EdgeInsets.only(
-                                            right: 10,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              width: 2,
-                                              color: Utils.getPriorityColor(
-                                                task.priority,
-                                              ),
+                                        GestureDetector(
+                                          onTap:
+                                              () =>
+                                                  task.status == 'Completed'
+                                                      ? _updateTaskStatus(
+                                                        task: task,
+                                                        status: 'Pending',
+                                                      )
+                                                      : _updateTaskStatus(
+                                                        task: task,
+                                                        status: 'Completed',
+                                                      ),
+                                          child: Container(
+                                            width: 16,
+                                            height: 16,
+                                            margin: const EdgeInsets.only(
+                                              right: 10,
                                             ),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                width: 2,
+                                                color: Utils.getPriorityColor(
+                                                  task.priority,
+                                                ),
+                                              ),
+                                              color:
+                                                  task.status == 'Completed'
+                                                      ? AppColors.black
+                                                      : Colors.transparent,
+                                            ),
+                                            child:
+                                                task.status == 'Completed'
+                                                    ? Icon(
+                                                      Icons.check,
+                                                      color:
+                                                          TAppTheme
+                                                              .primaryColor,
+                                                      size: 12,
+                                                    )
+                                                    : SizedBox(),
                                           ),
                                         ),
                                         TextButton(
                                           onPressed:
-                                              () => context.pushRoute(
-                                                GroupTaskDetailsRoute(
-                                                  groupTask: task,
-                                                ),
-                                              ),
+                                              task.groupTask == null
+                                                  ? null
+                                                  : () => context.pushRoute(
+                                                    GroupTaskDetailsRoute(
+                                                      groupTask:
+                                                          task.groupTask!,
+                                                    ),
+                                                  ),
                                           child: Text(
                                             task.title,
                                             style: TextStyle(

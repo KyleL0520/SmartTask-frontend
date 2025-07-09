@@ -17,9 +17,10 @@ import 'package:toggle_switch/toggle_switch.dart';
 import 'package:intl/intl.dart';
 
 class CollaborationController {
+  String? taskId;
   final TextEditingController collaboratorsId = TextEditingController();
-  final TextEditingController taskName = TextEditingController();
-  final TextEditingController taskDescription = TextEditingController();
+  final TextEditingController title = TextEditingController();
+  final TextEditingController description = TextEditingController();
   final TextEditingController deadlinesDate = TextEditingController();
   final TextEditingController deadlinesTime = TextEditingController();
 }
@@ -28,8 +29,15 @@ class CollaborationController {
 class FormScreen extends StatefulWidget {
   final Task? task;
   final GroupTask? groupTask;
-  final void Function(Task? savedTask)? afterSave;
-  const FormScreen({super.key, this.groupTask, this.task, this.afterSave});
+  final void Function(Task? savedTask)? afterTaskSave;
+  final void Function(GroupTask? savedGroupTask)? afterGroupTaskSave;
+  const FormScreen({
+    super.key,
+    this.groupTask,
+    this.task,
+    this.afterTaskSave,
+    this.afterGroupTaskSave,
+  });
 
   @override
   State<FormScreen> createState() => _FormScreenState();
@@ -44,10 +52,12 @@ class _FormScreenState extends State<FormScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late Future<List<Category>?> _categories;
+  late Future<List<Task>?> _allTasksInGroup;
+  final List<Task> _resolvedAllTaskInGroup = [];
 
   //Personal
-  final TextEditingController _taskName = TextEditingController();
-  final TextEditingController _taskDescription = TextEditingController();
+  final TextEditingController _title = TextEditingController();
+  final TextEditingController _description = TextEditingController();
   final TextEditingController _deadlinesDate = TextEditingController();
   final TextEditingController _deadlinesTime = TextEditingController();
   final TextEditingController _categoryId = TextEditingController();
@@ -61,16 +71,14 @@ class _FormScreenState extends State<FormScreen> {
   final TextEditingController _projectName = TextEditingController();
   final TextEditingController _projectDescription = TextEditingController();
 
-  final List<CollaborationController> _collaborations = [
-    CollaborationController(),
-  ];
+  final List<CollaborationData> _collaborations = [];
 
   @override
   void dispose() {
     super.dispose();
 
-    _taskName.dispose();
-    _taskDescription.dispose();
+    _title.dispose();
+    _description.dispose();
     _deadlinesDate.dispose();
     _deadlinesTime.dispose();
     _categoryId.dispose();
@@ -84,29 +92,59 @@ class _FormScreenState extends State<FormScreen> {
     _projectDescription.dispose();
 
     for (var c in _collaborations) {
-      c.collaboratorsId.dispose();
-      c.taskName.dispose();
-      c.taskDescription.dispose();
-      c.deadlinesDate.dispose();
-      c.deadlinesTime.dispose();
+      c.controller.collaboratorsId.dispose();
+      c.controller.title.dispose();
+      c.controller.description.dispose();
+      c.controller.deadlinesDate.dispose();
+      c.controller.deadlinesTime.dispose();
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _taskName.text = widget.task?.title ?? '';
-    _taskDescription.text = widget.task?.description ?? '';
-    _deadlinesDate.text = widget.task?.deadlinesDate ?? '';
-    _deadlinesTime.text = widget.task?.deadlinesTime ?? '';
-    if (widget.task?.category != null) {
-      _categoryId.text = widget.task!.category!.id;
-      _categoryName.text = widget.task!.category!.name;
-    }
-    _priority.text = widget.task?.priority ?? '';
-    _reminderDate.text = widget.task?.reminderDate ?? '';
-    _reminderTime.text = widget.task?.reminderTime ?? '';
     _categories = CategoryService().getCategorys();
+
+    if (widget.task != null) {
+      _title.text = widget.task?.title ?? '';
+      _description.text = widget.task?.description ?? '';
+      _deadlinesDate.text = widget.task?.deadlinesDate ?? '';
+      _deadlinesTime.text = widget.task?.deadlinesTime ?? '';
+      if (widget.task?.category != null) {
+        _categoryId.text = widget.task!.category!.id;
+        _categoryName.text = widget.task!.category!.name;
+      }
+      _priority.text = widget.task?.priority ?? '';
+      _reminderDate.text = widget.task?.reminderDate ?? '';
+      _reminderTime.text = widget.task?.reminderTime ?? '';
+    }
+    if (widget.groupTask != null) {
+      _isPersonal = false;
+      _projectName.text = widget.groupTask?.projectName ?? '';
+      _projectDescription.text = widget.groupTask?.projectDescription ?? '';
+
+      _allTasksInGroup = TaskService().getTasks(
+        groupTaskId: widget.groupTask!.id,
+      );
+      _allTasksInGroup.then((tasks) {
+        if (tasks != null && tasks.isNotEmpty) {
+          _collaborations.clear();
+          for (var task in tasks) {
+            final c = CollaborationController();
+            c.taskId = task.id;
+            c.collaboratorsId.text = task.user.uid;
+            c.title.text = task.title;
+            c.description.text = task.description;
+            c.deadlinesDate.text = task.deadlinesDate;
+            c.deadlinesTime.text = task.deadlinesTime;
+            _collaborations.add(
+              CollaborationData(taskId: task.id, controller: c),
+            );
+          }
+          setState(() {});
+        }
+      });
+    }
   }
 
   bool _checkReminder() {
@@ -147,7 +185,7 @@ class _FormScreenState extends State<FormScreen> {
     return true;
   }
 
-  Future<void> _createTask() async {
+  Future<void> _handleCreateTask() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -160,8 +198,8 @@ class _FormScreenState extends State<FormScreen> {
 
     try {
       await TaskService().createTask(
-        title: _taskName.text.trim(),
-        description: _taskDescription.text.trim(),
+        title: _title.text.trim(),
+        description: _description.text.trim(),
         category: _categoryId.text.trim(),
         deadlinesDate: _deadlinesDate.text.trim(),
         deadlinesTime: _deadlinesTime.text.trim(),
@@ -172,7 +210,7 @@ class _FormScreenState extends State<FormScreen> {
 
       if (!mounted) return;
       UINotify.success(context, 'Task added');
-      widget.afterSave!(null);
+      widget.afterTaskSave!(null);
       AutoRouter.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -184,7 +222,7 @@ class _FormScreenState extends State<FormScreen> {
     }
   }
 
-  Future<void> _editTask() async {
+  Future<void> _handleEditTask() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -196,15 +234,23 @@ class _FormScreenState extends State<FormScreen> {
     }
 
     try {
-      final response = await TaskService().updateTask(widget.task!);
+      final response = await TaskService().updateTask(
+        id: widget.task!.id,
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        category: _categoryId.text.trim(),
+        deadlinesDate: _deadlinesDate.text.trim(),
+        deadlinesTime: _deadlinesTime.text.trim(),
+        reminderDate: _reminderDate.text.trim(),
+        reminderTime: _reminderTime.text.trim(),
+        priority: _priority.text.trim(),
+      );
 
-      if (response == null) {
-        return;
-      }
+      if (response == null) return;
 
       if (!mounted) return;
       UINotify.success(context, 'Task edited');
-      widget.afterSave!(response);
+      widget.afterTaskSave!(response);
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -216,7 +262,7 @@ class _FormScreenState extends State<FormScreen> {
     }
   }
 
-  Future<void> _createGroupTask() async {
+  Future<void> _handleCreateGroupTask() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -229,23 +275,22 @@ class _FormScreenState extends State<FormScreen> {
         projectDescription: _projectDescription.text.trim(),
       );
 
-      if (groupResult == null) {
-        return;
-      }
+      if (groupResult == null) return;
 
       _collaborations.map((c) async {
         await TaskService().createCollaborationTask(
-          uid: c.collaboratorsId.text.trim(),
-          taskName: c.taskName.text.trim(),
-          taskDescription: c.taskDescription.text.trim(),
-          deadlinesDate: c.deadlinesDate.text.trim(),
-          deadlinesTime: c.deadlinesTime.text.trim(),
+          uid: c.controller.collaboratorsId.text.trim(),
+          title: c.controller.title.text.trim(),
+          description: c.controller.description.text.trim(),
+          deadlinesDate: c.controller.deadlinesDate.text.trim(),
+          deadlinesTime: c.controller.deadlinesTime.text.trim(),
           groupTask: groupResult.id,
         );
       }).toList();
 
       if (!mounted) return;
       UINotify.success(context, 'Group Task added');
+      widget.afterTaskSave!(null);
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
@@ -257,12 +302,84 @@ class _FormScreenState extends State<FormScreen> {
     }
   }
 
-  Future<void> _editGroupTask() async {
+  Future<void> _handleEditGroupTask() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
     });
+
+    try {
+      final response = await GroupTaskService().updateGroupTask(
+        id: widget.groupTask!.id,
+        projectName: _projectName.text.trim(),
+        projectDescription: _projectDescription.text.trim(),
+      );
+
+      await Future.wait(
+        _collaborations.map((data) async {
+          final c = data.controller;
+          if (data.taskId != null) {
+            await TaskService().updateCollaborationTask(
+              id: data.taskId!,
+              uid: c.collaboratorsId.text.trim(),
+              title: c.title.text.trim(),
+              description: c.description.text.trim(),
+              deadlinesDate: c.deadlinesDate.text.trim(),
+              deadlinesTime: c.deadlinesTime.text.trim(),
+            );
+          } else {
+            await TaskService().createCollaborationTask(
+              groupTask: widget.groupTask!.id,
+              uid: c.collaboratorsId.text.trim(),
+              title: c.title.text.trim(),
+              description: c.description.text.trim(),
+              deadlinesDate: c.deadlinesDate.text.trim(),
+              deadlinesTime: c.deadlinesTime.text.trim(),
+            );
+          }
+        }),
+      );
+
+      if (response == null) return;
+
+      if (!mounted) return;
+      UINotify.success(context, 'Group task edited');
+      widget.afterGroupTaskSave!(response);
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      UINotify.error(context, e);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleDeleteCollaborationTask(String? taskId, int index) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (taskId != null) {
+        final response = await TaskService().deleteTask(taskId);
+        if (response == null) return;
+        if (!mounted) return;
+        UINotify.success(context, 'Task deleted');
+      }
+
+      _collaborations.removeAt(index);
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      UINotify.error(context, e);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -340,14 +457,14 @@ class _FormScreenState extends State<FormScreen> {
                               CustomLabel(text: 'Task Name'),
                               const SizedBox(height: 10),
                               TaskField(
-                                controller: _taskName,
+                                controller: _title,
                                 hintText: 'Enter the task name',
                                 emptyMessage: 'Pleas enter the task name',
                               ),
                               const SizedBox(height: 20),
                               CustomLabel(text: 'Description'),
                               const SizedBox(height: 10),
-                              DescriptionField(controller: _taskDescription),
+                              DescriptionField(controller: _description),
                               const SizedBox(height: 20),
                               CustomLabel(text: 'Deadlines'),
                               const SizedBox(height: 10),
@@ -478,8 +595,20 @@ class _FormScreenState extends State<FormScreen> {
                           const SizedBox(height: 20),
                           CustomLabel(text: 'Collaboration'),
                           const SizedBox(height: 10),
-                          ..._collaborations.map(
-                            (controller) => _buildCollaborationForm(controller),
+                          Column(
+                            children:
+                                _collaborations.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final data = entry.value;
+                                  return _buildCollaborationForm(
+                                    controller: data.controller,
+                                    onDelete:
+                                        () => _handleDeleteCollaborationTask(
+                                          data.taskId,
+                                          index,
+                                        ),
+                                  );
+                                }).toList(),
                           ),
                           Container(
                             width: double.infinity,
@@ -495,7 +624,10 @@ class _FormScreenState extends State<FormScreen> {
                               onTap:
                                   () => setState(
                                     () => _collaborations.add(
-                                      CollaborationController(),
+                                      CollaborationData(
+                                        taskId: null,
+                                        controller: CollaborationController(),
+                                      ),
                                     ),
                                   ),
                               child: Container(
@@ -523,13 +655,13 @@ class _FormScreenState extends State<FormScreen> {
                     isLoading: _isLoading,
                     handle: () {
                       if (widget.task != null) {
-                        _editTask();
+                        _handleEditTask();
                       } else if (widget.groupTask != null) {
-                        _editGroupTask();
+                        _handleEditGroupTask();
                       } else if (_isPersonal) {
-                        _createTask();
+                        _handleCreateTask();
                       } else {
-                        _createGroupTask();
+                        _handleCreateGroupTask();
                       }
                     },
                   ),
@@ -543,50 +675,73 @@ class _FormScreenState extends State<FormScreen> {
     );
   }
 
-  Widget _buildCollaborationForm(CollaborationController controller) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.grey),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CustomLabel(text: 'Email'),
-          const SizedBox(height: 10),
-          UserField(controller: controller.collaboratorsId),
-          const SizedBox(height: 20),
-          CustomLabel(text: 'Task'),
-          const SizedBox(height: 10),
-          TaskField(
-            controller: controller.taskName,
-            hintText: 'Enter task name',
-            emptyMessage: 'Please enter task name',
+  Widget _buildCollaborationForm({
+    required CollaborationController controller,
+    VoidCallback? onDelete,
+  }) {
+    return Stack(
+      children: [
+        Container(
+          margin: EdgeInsets.only(bottom: 10),
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.grey),
+            borderRadius: BorderRadius.circular(15),
           ),
-          const SizedBox(height: 20),
-          CustomLabel(text: 'Description'),
-          const SizedBox(height: 10),
-          DescriptionField(controller: controller.taskDescription),
-          const SizedBox(height: 20),
-          CustomLabel(text: 'Deadlines'),
-          const SizedBox(height: 10),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DatePicker(
-                controller: controller.deadlinesDate,
-                isValidate: true,
+              CustomLabel(text: 'Email'),
+              const SizedBox(height: 10),
+              UserField(controller: controller.collaboratorsId),
+              const SizedBox(height: 20),
+              CustomLabel(text: 'Task'),
+              const SizedBox(height: 10),
+              TaskField(
+                controller: controller.title,
+                hintText: 'Enter task name',
+                emptyMessage: 'Please enter task name',
               ),
-              const SizedBox(width: 10),
-              TimePicker(
-                controller: controller.deadlinesTime,
-                isValidate: true,
+              const SizedBox(height: 20),
+              CustomLabel(text: 'Description'),
+              const SizedBox(height: 10),
+              DescriptionField(controller: controller.description),
+              const SizedBox(height: 20),
+              CustomLabel(text: 'Deadlines'),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  DatePicker(
+                    controller: controller.deadlinesDate,
+                    isValidate: true,
+                  ),
+                  const SizedBox(width: 10),
+                  TimePicker(
+                    controller: controller.deadlinesTime,
+                    isValidate: true,
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: IconButton(
+            onPressed: onDelete,
+            tooltip: 'Remove collaboration',
+            icon: const Icon(Icons.close, color: AppColors.red),
+          ),
+        ),
+      ],
     );
   }
+}
+
+class CollaborationData {
+  String? taskId;
+  final CollaborationController controller;
+
+  CollaborationData({this.taskId, required this.controller});
 }

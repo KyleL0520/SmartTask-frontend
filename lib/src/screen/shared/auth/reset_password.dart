@@ -83,12 +83,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                     const SizedBox(height: 40),
                     PasswordField(controller: _password),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 20),
                     ConfirmPasswordField(
                       passwordController: _password,
                       confirmPasswordController: _confirmPassword,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30),
                     CustomButton(
                       text: 'Reset',
                       isLoading: _isLoading,

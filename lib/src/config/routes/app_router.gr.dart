@@ -197,7 +197,8 @@ class FormRoute extends _i18.PageRouteInfo<FormRouteArgs> {
     _i19.Key? key,
     _i21.GroupTask? groupTask,
     _i22.Task? task,
-    void Function(_i22.Task?)? afterSave,
+    void Function(_i22.Task?)? afterTaskSave,
+    void Function(_i21.GroupTask?)? afterGroupTaskSave,
     List<_i18.PageRouteInfo>? children,
   }) : super(
          FormRoute.name,
@@ -205,7 +206,8 @@ class FormRoute extends _i18.PageRouteInfo<FormRouteArgs> {
            key: key,
            groupTask: groupTask,
            task: task,
-           afterSave: afterSave,
+           afterTaskSave: afterTaskSave,
+           afterGroupTaskSave: afterGroupTaskSave,
          ),
          initialChildren: children,
        );
@@ -222,14 +224,21 @@ class FormRoute extends _i18.PageRouteInfo<FormRouteArgs> {
         key: args.key,
         groupTask: args.groupTask,
         task: args.task,
-        afterSave: args.afterSave,
+        afterTaskSave: args.afterTaskSave,
+        afterGroupTaskSave: args.afterGroupTaskSave,
       );
     },
   );
 }
 
 class FormRouteArgs {
-  const FormRouteArgs({this.key, this.groupTask, this.task, this.afterSave});
+  const FormRouteArgs({
+    this.key,
+    this.groupTask,
+    this.task,
+    this.afterTaskSave,
+    this.afterGroupTaskSave,
+  });
 
   final _i19.Key? key;
 
@@ -237,11 +246,13 @@ class FormRouteArgs {
 
   final _i22.Task? task;
 
-  final void Function(_i22.Task?)? afterSave;
+  final void Function(_i22.Task?)? afterTaskSave;
+
+  final void Function(_i21.GroupTask?)? afterGroupTaskSave;
 
   @override
   String toString() {
-    return 'FormRouteArgs{key: $key, groupTask: $groupTask, task: $task, afterSave: $afterSave}';
+    return 'FormRouteArgs{key: $key, groupTask: $groupTask, task: $task, afterTaskSave: $afterTaskSave, afterGroupTaskSave: $afterGroupTaskSave}';
   }
 
   @override
@@ -263,11 +274,16 @@ class GroupTaskDetailsRoute
     extends _i18.PageRouteInfo<GroupTaskDetailsRouteArgs> {
   GroupTaskDetailsRoute({
     _i19.Key? key,
-    required _i22.Task groupTask,
+    required _i21.GroupTask groupTask,
+    void Function(_i21.GroupTask?)? afterGroupTaskSave,
     List<_i18.PageRouteInfo>? children,
   }) : super(
          GroupTaskDetailsRoute.name,
-         args: GroupTaskDetailsRouteArgs(key: key, groupTask: groupTask),
+         args: GroupTaskDetailsRouteArgs(
+           key: key,
+           groupTask: groupTask,
+           afterGroupTaskSave: afterGroupTaskSave,
+         ),
          initialChildren: children,
        );
 
@@ -280,21 +296,28 @@ class GroupTaskDetailsRoute
       return _i8.GroupTaskDetailsScreen(
         key: args.key,
         groupTask: args.groupTask,
+        afterGroupTaskSave: args.afterGroupTaskSave,
       );
     },
   );
 }
 
 class GroupTaskDetailsRouteArgs {
-  const GroupTaskDetailsRouteArgs({this.key, required this.groupTask});
+  const GroupTaskDetailsRouteArgs({
+    this.key,
+    required this.groupTask,
+    this.afterGroupTaskSave,
+  });
 
   final _i19.Key? key;
 
-  final _i22.Task groupTask;
+  final _i21.GroupTask groupTask;
+
+  final void Function(_i21.GroupTask?)? afterGroupTaskSave;
 
   @override
   String toString() {
-    return 'GroupTaskDetailsRouteArgs{key: $key, groupTask: $groupTask}';
+    return 'GroupTaskDetailsRouteArgs{key: $key, groupTask: $groupTask, afterGroupTaskSave: $afterGroupTaskSave}';
   }
 
   @override
@@ -380,14 +403,14 @@ class PersonalTaskDetailsRoute
   PersonalTaskDetailsRoute({
     _i19.Key? key,
     required _i22.Task task,
-    void Function(_i22.Task?)? afterSave,
+    void Function(_i22.Task?)? afterTaskSave,
     List<_i18.PageRouteInfo>? children,
   }) : super(
          PersonalTaskDetailsRoute.name,
          args: PersonalTaskDetailsRouteArgs(
            key: key,
            task: task,
-           afterSave: afterSave,
+           afterTaskSave: afterTaskSave,
          ),
          initialChildren: children,
        );
@@ -401,7 +424,7 @@ class PersonalTaskDetailsRoute
       return _i11.PersonalTaskDetailsScreen(
         key: args.key,
         task: args.task,
-        afterSave: args.afterSave,
+        afterTaskSave: args.afterTaskSave,
       );
     },
   );
@@ -411,18 +434,18 @@ class PersonalTaskDetailsRouteArgs {
   const PersonalTaskDetailsRouteArgs({
     this.key,
     required this.task,
-    this.afterSave,
+    this.afterTaskSave,
   });
 
   final _i19.Key? key;
 
   final _i22.Task task;
 
-  final void Function(_i22.Task?)? afterSave;
+  final void Function(_i22.Task?)? afterTaskSave;
 
   @override
   String toString() {
-    return 'PersonalTaskDetailsRouteArgs{key: $key, task: $task, afterSave: $afterSave}';
+    return 'PersonalTaskDetailsRouteArgs{key: $key, task: $task, afterTaskSave: $afterTaskSave}';
   }
 
   @override

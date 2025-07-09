@@ -60,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> with RouteAware {
     }
   }
 
-  Future<void> handleLogout() async {
+  Future<void> _handleLogout() async {
     UIConfirm.confirmDialog(
       context,
       'Are you sure to logout?',
@@ -155,7 +155,7 @@ class _ProfileScreenState extends State<ProfileScreen> with RouteAware {
                       _buildSectionButton(
                         title: 'Logout',
                         icon: Icons.logout_outlined,
-                        onTap: handleLogout,
+                        onTap: _handleLogout,
                       ),
                     ],
                   ),

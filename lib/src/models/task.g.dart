@@ -8,7 +8,7 @@ part of 'task.dart';
 
 Task _$TaskFromJson(Map<String, dynamic> json) => Task(
   id: json['_id'] as String,
-  user: json['user'] as String,
+  user: User.fromJson(json['user'] as Map<String, dynamic>),
   title: json['title'] as String,
   description: json['description'] as String,
   category:
@@ -21,16 +21,17 @@ Task _$TaskFromJson(Map<String, dynamic> json) => Task(
   reminderDate: json['reminderDate'] as String?,
   reminderTime: json['reminderTime'] as String?,
   status: json['status'] as String,
+  isExpired: json['isExpired'] as bool? ?? false,
+  isApproved: json['isApproved'] as bool? ?? false,
   groupTask:
       json['groupTask'] == null
           ? null
           : GroupTask.fromJson(json['groupTask'] as Map<String, dynamic>),
-  createdAt: DateTime.parse(json['createdAt'] as String),
 );
 
 Map<String, dynamic> _$TaskToJson(Task instance) => <String, dynamic>{
   '_id': instance.id,
-  'user': instance.user,
+  'user': instance.user.toJson(),
   'title': instance.title,
   'description': instance.description,
   'category': instance.category?.toJson(),
@@ -40,6 +41,7 @@ Map<String, dynamic> _$TaskToJson(Task instance) => <String, dynamic>{
   'reminderDate': instance.reminderDate,
   'reminderTime': instance.reminderTime,
   'status': instance.status,
+  'isExpired': instance.isExpired,
+  'isApproved': instance.isApproved,
   'groupTask': instance.groupTask?.toJson(),
-  'createdAt': instance.createdAt.toIso8601String(),
 };

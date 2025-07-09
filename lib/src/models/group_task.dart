@@ -1,3 +1,4 @@
+import 'package:frontend/src/models/user.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'group_task.g.dart';
@@ -6,7 +7,7 @@ part 'group_task.g.dart';
 class GroupTask {
   @JsonKey(name: '_id')
   final String id;
-  final String owner;
+  final User owner;
   String projectName;
   String projectDescription;
 

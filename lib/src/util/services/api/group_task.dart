@@ -12,7 +12,7 @@ class GroupTaskService extends API {
     try {
       final response = await dio.get(
         _baseUrl,
-        queryParameters: {"user": user?.uid},
+        queryParameters: {"owner": user?.uid},
       );
 
       if (response.statusCode == 200) {
@@ -68,11 +68,21 @@ class GroupTaskService extends API {
     }
   }
 
-  Future<bool?> updateGroupTask(String id, GroupTask groupTask) async {
+  Future<GroupTask?> updateGroupTask({
+    required String id,
+    required String projectName,
+    required String projectDescription,
+  }) async {
     try {
-      final response = await dio.put('$_baseUrl/$id', data: groupTask);
+      final response = await dio.put(
+        '$_baseUrl/$id',
+        data: {
+          'projectName': projectName,
+          'projectDescription': projectDescription,
+        },
+      );
       if (response.statusCode == 200) {
-        return true;
+        return GroupTask.fromJson(response.data);
       } else {
         throw response;
       }
@@ -81,11 +91,11 @@ class GroupTaskService extends API {
     }
   }
 
-  Future<bool?> deleteGroupTask(String id) async {
+  Future<GroupTask?> deleteGroupTask(String id) async {
     try {
       final response = await dio.delete('$_baseUrl/$id');
       if (response.statusCode == 200 || response.statusCode == 204) {
-        return true;
+        return GroupTask.fromJson(response.data);
       } else {
         throw response;
       }

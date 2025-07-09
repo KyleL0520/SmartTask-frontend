@@ -6,7 +6,12 @@ import 'package:frontend/src/util/services/storage/auth_storage.dart';
 class TaskService extends API {
   final String _baseUrl = "/api/task";
 
-  Future<List<Task>?> getTasks({String? status, bool? isGroupTask}) async {
+  Future<List<Task>?> getTasks({
+    String? status,
+    String? groupTaskId,
+    bool? isGroupTask,
+    bool? isApproved,
+  }) async {
     User? user = await AuthStorage().getUser();
 
     try {
@@ -15,7 +20,9 @@ class TaskService extends API {
         queryParameters: {
           "user": user?.uid,
           "status": status,
+          "groupTaskId": groupTaskId,
           "isGroupTask": isGroupTask,
+          "isApproved": isApproved,
         },
       );
 
@@ -57,6 +64,7 @@ class TaskService extends API {
           'reminderDate': reminderDate,
           'reminderTime': reminderTime,
           'priority': priority,
+          'isApproved': true,
         },
       );
 
@@ -74,8 +82,8 @@ class TaskService extends API {
 
   Future<Task?> createCollaborationTask({
     required String uid,
-    required String taskName,
-    required String taskDescription,
+    required String title,
+    required String description,
     required String deadlinesDate,
     required String deadlinesTime,
     required String groupTask,
@@ -85,11 +93,12 @@ class TaskService extends API {
         _baseUrl,
         data: {
           'user': uid,
-          'title': taskName,
-          'description': taskDescription,
+          'title': title,
+          'description': description,
           'deadlinesDate': deadlinesDate,
           'deadlinesTime': deadlinesTime,
           'groupTask': groupTask,
+          'isApproved': false,
         },
       );
 
@@ -103,7 +112,72 @@ class TaskService extends API {
     }
   }
 
-  Future<Task?> updateTask(Task task) async {
+  Future<Task?> updateCollaborationTask({
+    required String id,
+    required String uid,
+    required String title,
+    required String description,
+    required String deadlinesDate,
+    required String deadlinesTime,
+  }) async {
+    try {
+      final response = await dio.put(
+        '$_baseUrl/$id',
+        data: {
+          'user': uid,
+          'title': title,
+          'description': description,
+          'deadlinesDate': deadlinesDate,
+          'deadlinesTime': deadlinesTime,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return Task.fromJson(response.data);
+      } else {
+        throw response;
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Task?> updateTask({
+    required String id,
+    required String title,
+    required String description,
+    String? category,
+    required String deadlinesDate,
+    required String deadlinesTime,
+    String? reminderDate,
+    String? reminderTime,
+    String? priority,
+  }) async {
+    try {
+      final response = await dio.put(
+        '$_baseUrl/$id',
+        data: {
+          'title': title,
+          'description': description,
+          'category': category,
+          'deadlinesDate': deadlinesDate,
+          'deadlinesTime': deadlinesTime,
+          'reminderDate': reminderDate,
+          'reminderTime': reminderTime,
+          'priority': priority,
+        },
+      );
+      if (response.statusCode == 200) {
+        return Task.fromJson(response.data);
+      } else {
+        throw response;
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Task?> updateTaskStatus(Task task) async {
     try {
       final response = await dio.put(
         '$_baseUrl/${task.id}',

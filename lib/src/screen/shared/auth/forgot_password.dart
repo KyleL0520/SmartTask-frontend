@@ -33,6 +33,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   void dispose() {
+    _timer?.cancel();
     _email.dispose();
     _otpCode.dispose();
     super.dispose();
@@ -46,14 +47,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown > 0) {
-        setState(() {
-          _countdown--;
-        });
+        if (mounted) {
+          setState(() {
+            _countdown--;
+          });
+        }
       } else {
         _timer?.cancel();
-        setState(() {
-          _canResend = true;
-        });
+        if (mounted) {
+          setState(() {
+            _canResend = true;
+          });
+        }
       }
     });
   }

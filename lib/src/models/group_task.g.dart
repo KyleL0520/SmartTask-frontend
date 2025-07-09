@@ -8,14 +8,14 @@ part of 'group_task.dart';
 
 GroupTask _$GroupTaskFromJson(Map<String, dynamic> json) => GroupTask(
   id: json['_id'] as String,
-  owner: json['owner'] as String,
+  owner: User.fromJson(json['owner'] as Map<String, dynamic>),
   projectName: json['projectName'] as String,
   projectDescription: json['projectDescription'] as String,
 );
 
 Map<String, dynamic> _$GroupTaskToJson(GroupTask instance) => <String, dynamic>{
   '_id': instance.id,
-  'owner': instance.owner,
+  'owner': instance.owner.toJson(),
   'projectName': instance.projectName,
   'projectDescription': instance.projectDescription,
 };

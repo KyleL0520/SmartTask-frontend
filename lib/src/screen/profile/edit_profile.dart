@@ -23,6 +23,7 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
+  bool _isPickingImage = false;
   late String _avatar;
 
   final _formKey = GlobalKey<FormState>();
@@ -37,13 +38,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future pickImageFromGallery() async {
-    final selectedImage = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (selectedImage != null) {
-      setState(() {
-        _avatar = selectedImage.path;
-      });
+    if (_isPickingImage) return;
+
+    _isPickingImage = true;
+
+    try {
+      final selectedImage = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+      if (selectedImage != null) {
+        setState(() {
+          _avatar = selectedImage.path;
+        });
+      }
+    } catch (e) {
+      print('Image picking failed: $e');
+    } finally {
+      _isPickingImage = false;
     }
   }
 
@@ -55,13 +66,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     widget.user.username = _username.text.trim();
+    widget.user.avatarPhoto = _avatar;
 
     try {
       final response = await UserService().updateUser(context, widget.user);
 
-      if (response == null) {
-        return;
-      }
+      if (response == null) return;
 
       if (!mounted) return;
       UINotify.success(context, 'User edited');
@@ -96,7 +106,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   const SizedBox(height: 20),
                   GestureDetector(
-                    onTap: pickImageFromGallery,
+                    onTap: _isPickingImage ? null : pickImageFromGallery,
                     child: Stack(
                       children: [
                         ClipOval(
@@ -110,7 +120,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   )
                                   : _avatar.startsWith('http')
                                   ? Image.network(
-                                    _avatar,
+                                    '$_avatar?v=${DateTime.now().millisecondsSinceEpoch}',
+                                    key: ValueKey(_avatar),
                                     width: 120,
                                     height: 120,
                                     fit: BoxFit.cover,

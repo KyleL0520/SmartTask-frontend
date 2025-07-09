@@ -34,27 +34,46 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
   void initState() {
     super.initState();
     _categories = CategoryService().getCategorys();
-    _tasks = TaskService().getTasks(status: 'Pending');
+    _tasks = TaskService().getTasks(status: 'Pending', isGroupTask: false);
     _initTasksFuture = _loadFilteredTasks();
     TaskScreenCallbackRegistry.refresh = refreshTask;
   }
 
   Future<void> refreshTask() async {
-    _tasks = TaskService().getTasks(status: 'Pending');
+    _tasks = TaskService().getTasks(status: 'Pending', isGroupTask: false);
     _initTasksFuture = _loadFilteredTasks();
     setState(() {});
   }
 
   Future<void> _loadFilteredTasks() async {
     final tasks = await _tasks ?? [];
-    if (selectedCategory == 'All') {
-      _filteredTasks =
-          tasks.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    } else {
-      _filteredTasks =
-          tasks.where((t) => t.category?.name == selectedCategory).toList()
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    }
+
+    List<Task> filtered =
+        selectedCategory == 'All'
+            ? tasks
+            : tasks.where((t) => t.category?.name == selectedCategory).toList();
+
+    filtered.sort((a, b) {
+      DateTime parseDeadline(Task t) {
+        try {
+          final date = DateFormat('d MMMM yyyy').parse(t.deadlinesDate);
+          final time = DateFormat('hh : mm a').parse(t.deadlinesTime);
+          return DateTime(
+            date.year,
+            date.month,
+            date.day,
+            time.hour,
+            time.minute,
+          );
+        } catch (_) {
+          return DateTime.now();
+        }
+      }
+
+      return parseDeadline(b).compareTo(parseDeadline(a));
+    });
+
+    _filteredTasks = filtered;
   }
 
   Future<void> _createCategory(TextEditingController category) async {
@@ -160,11 +179,9 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
     task.status = status;
 
     try {
-      final response = await TaskService().updateTask(task);
+      final response = await TaskService().updateTaskStatus(task);
 
-      if (response == null) {
-        return;
-      }
+      if (response == null) return;
 
       if (!mounted) return;
       await refreshTask();
@@ -261,15 +278,26 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
                   }
 
                   final Map<String, List<Task>> groupedTasks = {};
+
                   for (var task in _filteredTasks ?? []) {
+                    DateTime deadlineDate;
+                    try {
+                      deadlineDate = DateFormat(
+                        'd MMMM yyyy',
+                      ).parse(task.deadlinesDate);
+                    } catch (_) {
+                      deadlineDate = DateTime.now();
+                    }
+
                     final formattedDate = DateFormat(
                       'dd/MM/yyyy',
-                    ).format(task.createdAt);
+                    ).format(deadlineDate);
                     final dateLabel =
                         formattedDate ==
                                 DateFormat('dd/MM/yyyy').format(DateTime.now())
                             ? 'Today'
                             : formattedDate;
+
                     groupedTasks.putIfAbsent(dateLabel, () => []).add(task);
                   }
 
@@ -331,10 +359,16 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
                                           const SizedBox(width: 5),
                                           GestureDetector(
                                             onTap:
-                                                () => _updateTaskStatus(
-                                                  task: t,
-                                                  status: 'Completed',
-                                                ),
+                                                () =>
+                                                    t.status == 'Completed'
+                                                        ? _updateTaskStatus(
+                                                          task: t,
+                                                          status: 'Pending',
+                                                        )
+                                                        : _updateTaskStatus(
+                                                          task: t,
+                                                          status: 'Completed',
+                                                        ),
                                             child: Container(
                                               width: 18,
                                               height: 18,
@@ -357,7 +391,9 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
                                                 () => context.pushRoute(
                                                   PersonalTaskDetailsRoute(
                                                     task: t,
-                                                    afterSave: (Task? newTask) {
+                                                    afterTaskSave: (
+                                                      Task? newTask,
+                                                    ) {
                                                       if (newTask == null) {
                                                         print(
                                                           'Edit pop back error',

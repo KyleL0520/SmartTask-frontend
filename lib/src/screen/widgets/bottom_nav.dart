@@ -29,7 +29,10 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
           onPressed: () {
             AutoRouter.of(context).push(
               FormRoute(
-                afterSave: (task) => TaskScreenCallbackRegistry.refresh?.call(),
+                afterTaskSave:
+                    (task) => TaskScreenCallbackRegistry.refresh?.call(),
+                afterGroupTaskSave:
+                    (groupTask) => TaskScreenCallbackRegistry.refresh?.call(),
               ),
             );
           },

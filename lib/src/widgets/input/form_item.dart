@@ -203,12 +203,6 @@ class UsernameField extends StatelessWidget {
               return 'Please enter your username';
             }
 
-            final regex = RegExp(r'^[a-zA-Z@_-]+$');
-
-            if (!regex.hasMatch(value)) {
-              return 'Only allow alphabet and -';
-            }
-
             return null;
           },
         ),
@@ -532,10 +526,6 @@ class _categoryIdPickerState extends State<CategoryPicker> {
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: AppColors.grey, width: 1.5),
         ),
-        suffixIcon: Icon(
-          Icons.access_time_filled_outlined,
-          color: TAppTheme.secondaryColor,
-        ),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -642,10 +632,6 @@ class _CustomPickerState extends State<CustomPicker> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: AppColors.grey, width: 1.5),
-        ),
-        suffixIcon: Icon(
-          Icons.access_time_filled_outlined,
-          color: TAppTheme.secondaryColor,
         ),
       ),
       onTap:
