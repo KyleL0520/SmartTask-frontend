@@ -20,7 +20,7 @@ Task _$TaskFromJson(Map<String, dynamic> json) => Task(
   priority: json['priority'] as String?,
   reminderDate: json['reminderDate'] as String?,
   reminderTime: json['reminderTime'] as String?,
-  status: json['status'] as String,
+  status: json['status'] as String? ?? 'Pending',
   isExpired: json['isExpired'] as bool? ?? false,
   isApproved: json['isApproved'] as bool? ?? false,
   groupTask:

@@ -11,6 +11,7 @@ class TaskService extends API {
     String? groupTaskId,
     bool? isGroupTask,
     bool? isApproved,
+    bool? isByUser,
   }) async {
     User? user = await AuthStorage().getUser();
 
@@ -23,6 +24,7 @@ class TaskService extends API {
           "groupTaskId": groupTaskId,
           "isGroupTask": isGroupTask,
           "isApproved": isApproved,
+          "isByUser": isByUser,
         },
       );
 
@@ -65,7 +67,29 @@ class TaskService extends API {
           'reminderTime': reminderTime,
           'priority': priority,
           'isApproved': true,
+          'isReminderSent': false
         },
+      );
+
+      print(response.data);
+
+      if (response.statusCode == 201) {
+        return Task.fromJson(response.data);
+      } else {
+        throw response;
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Task?> createTaskAI({required String description}) async {
+    User? user = await AuthStorage().getUser();
+
+    try {
+      final response = await dio.post(
+        '$_baseUrl/parse',
+        data: {'user': user?.uid, 'text': description},
       );
 
       print(response.data);

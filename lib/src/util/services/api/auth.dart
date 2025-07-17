@@ -54,8 +54,6 @@ class AuthService extends API {
         data: {"email": email, "password": password},
       );
 
-      print(response.data);
-
       if (response.statusCode == 201) {
         User userResponse = User.fromJson(response.data['user']);
 

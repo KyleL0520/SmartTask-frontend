@@ -29,7 +29,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   void initState() {
     super.initState();
-    _tasks = TaskService().getTasks(isApproved: true);
+    _tasks = TaskService().getTasks(isApproved: true, isByUser: true);
   }
 
   double _calculatePercent(String status, List<Task> tasks) {

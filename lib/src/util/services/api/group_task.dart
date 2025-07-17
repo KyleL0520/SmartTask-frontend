@@ -12,7 +12,7 @@ class GroupTaskService extends API {
     try {
       final response = await dio.get(
         _baseUrl,
-        queryParameters: {"owner": user?.uid},
+        queryParameters: {"user": user?.uid},
       );
 
       if (response.statusCode == 200) {

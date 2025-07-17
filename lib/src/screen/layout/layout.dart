@@ -18,7 +18,12 @@ class BaseLayoutScreen extends StatelessWidget {
 
         if (user == null) return const LoginScreen();
 
-        router.replaceAll([BottomNavRoute()]);
+        // router.replaceAll([BottomNavRoute()]);
+
+        Future.microtask(() {
+          if (router.canPop()) return;
+          router.replaceAll([const BottomNavRoute()]);
+        });
 
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },

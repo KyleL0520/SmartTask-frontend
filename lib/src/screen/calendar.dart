@@ -20,7 +20,7 @@ class CalendarScreen extends StatefulWidget {
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
-
+ 
 class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime dateTime;
   late String date;
@@ -34,13 +34,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final now = DateTime.now();
     dateTime = now;
     date = DateFormat('dd-MM-yyyy').format(now);
-    _personalTasks = TaskService().getTasks(isGroupTask: false);
-    _groupTasks = TaskService().getTasks(isGroupTask: true, isApproved: true);
+    _personalTasks = TaskService().getTasks(isGroupTask: false, isByUser: true);
+    _groupTasks = TaskService().getTasks(
+      isGroupTask: true,
+      isApproved: true,
+      isByUser: true,
+    );
   }
 
   Future<void> refreshTask() async {
-    _personalTasks = TaskService().getTasks(isGroupTask: false);
-    _groupTasks = TaskService().getTasks(isGroupTask: true, isApproved: true);
+    _personalTasks = TaskService().getTasks(isGroupTask: false, isByUser: true);
+    _groupTasks = TaskService().getTasks(
+      isGroupTask: true,
+      isApproved: true,
+      isByUser: true,
+    );
     setState(() {});
   }
 
@@ -460,6 +468,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                             ),
                                           ),
                                         ),
+                                        const Spacer(),
+                                        if (task.isExpired)
+                                          Text(
+                                            'Expired',
+                                            style: TextStyle(
+                                              color: AppColors.red,
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   );

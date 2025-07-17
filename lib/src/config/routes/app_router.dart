@@ -9,7 +9,9 @@ final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
-    AutoRoute(page: BaseLayoutRoute.page, initial: true, path: '/'),
+    AutoRoute(page: StartRoute.page, initial: true, path: '/'),
+
+    AutoRoute(page: BaseLayoutRoute.page, path: '/base-layout'),
 
     AutoRoute(
       page: BottomNavRoute.page,

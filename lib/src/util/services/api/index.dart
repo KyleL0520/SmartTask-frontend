@@ -61,31 +61,31 @@ class DioInterceptor extends Interceptor {
     super.onRequest(options, handler);
   }
 
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final isRetry = err.requestOptions.extra['isRetry'] == true;
+  // @override
+  // void onError(DioException err, ErrorInterceptorHandler handler) async {
+  //   final isRetry = err.requestOptions.extra['isRetry'] == true;
 
-    if (err.response?.statusCode == 401 && !isRetry) {
-      try {
-        final newToken = await refreshToken();
+  //   if (err.response?.statusCode == 401 && !isRetry) {
+  //     try {
+  //       final newToken = await refreshToken();
 
-        if (newToken != null && newToken.isNotEmpty) {
-          final options = err.requestOptions;
-          options.headers["Authorization"] = "Bearer $newToken";
-          options.extra['isRetry'] = true;
+  //       if (newToken != null && newToken.isNotEmpty) {
+  //         final options = err.requestOptions;
+  //         options.headers["Authorization"] = "Bearer $newToken";
+  //         options.extra['isRetry'] = true;
 
-          final response = await _dio.fetch(options);
-          handler.resolve(response);
-        } else {
-          AuthStorage().clear();
-          super.onError(err, handler);
-        }
-      } on DioException catch (error) {
-        AuthStorage().clear();
-        super.onError(error, handler);
-      }
-    } else {
-      super.onError(err, handler);
-    }
-  }
+  //         final response = await _dio.fetch(options);
+  //         handler.resolve(response);
+  //       } else {
+  //         AuthStorage().clear();
+  //         super.onError(err, handler);
+  //       }
+  //     } on DioException catch (error) {
+  //       AuthStorage().clear();
+  //       super.onError(error, handler);
+  //     }
+  //   } else {
+  //     super.onError(err, handler);
+  //   }
+  // }
 }

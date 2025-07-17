@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:frontend/src/config/routes/app_router.gr.dart';
 import 'package:frontend/src/models/user.dart';
 import 'package:frontend/src/util/services/api/auth.dart';
 import 'package:frontend/src/widgets/app_bar/app_bar.dart';

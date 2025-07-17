@@ -45,7 +45,10 @@ class _GroupTaskDetailsScreenState extends State<GroupTaskDetailsScreen> {
   void initState() {
     super.initState();
     _groupTask = widget.groupTask;
-    _allTasksInGroup = TaskService().getTasks(groupTaskId: widget.groupTask.id);
+    _allTasksInGroup = TaskService().getTasks(
+      groupTaskId: widget.groupTask.id,
+      isByUser: false,
+    );
     _calculatePercent();
     _loadUser();
   }
@@ -62,13 +65,17 @@ class _GroupTaskDetailsScreenState extends State<GroupTaskDetailsScreen> {
       _groupTask = newGroupTask;
       _allTasksInGroup = TaskService().getTasks(
         groupTaskId: widget.groupTask.id,
+        isByUser: false,
       );
     });
     TaskScreenCallbackRegistry.refresh?.call();
   }
 
   Future<void> refreshTask() async {
-    _allTasksInGroup = TaskService().getTasks(groupTaskId: widget.groupTask.id);
+    _allTasksInGroup = TaskService().getTasks(
+      groupTaskId: widget.groupTask.id,
+      isByUser: false,
+    );
     setState(() {});
   }
 
@@ -143,30 +150,32 @@ class _GroupTaskDetailsScreenState extends State<GroupTaskDetailsScreen> {
         title: 'Project Details',
         isCenterTitle: true,
         actions: [
-          TextButton(
-            onPressed: () {
-              AutoRouter.of(context).push(
-                FormRoute(
-                  groupTask: _groupTask,
-                  afterGroupTaskSave: (GroupTask? newGroupTask) {
-                    if (newGroupTask == null) {
-                      print('Edit pop back error');
-                      return;
-                    }
-                    refreshGroupTask(newGroupTask);
-                  },
+          user?.uid == _groupTask.owner.uid
+              ? TextButton(
+                onPressed: () {
+                  AutoRouter.of(context).push(
+                    FormRoute(
+                      groupTask: _groupTask,
+                      afterGroupTaskSave: (GroupTask? newGroupTask) {
+                        if (newGroupTask == null) {
+                          print('Edit pop back error');
+                          return;
+                        }
+                        refreshGroupTask(newGroupTask);
+                      },
+                    ),
+                  );
+                },
+                child: Text(
+                  'Edit',
+                  style: TextStyle(
+                    color: TAppTheme.secondaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
-              );
-            },
-            child: Text(
-              'Edit',
-              style: TextStyle(
-                color: TAppTheme.secondaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ),
+              )
+              : SizedBox(),
         ],
       ),
       body: SafeArea(
@@ -412,10 +421,12 @@ class _GroupTaskDetailsScreenState extends State<GroupTaskDetailsScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                DeleteButton(
-                  isLoading: _isLoading,
-                  handle: () => _deleteGroupTask(),
-                ),
+                user == _groupTask.owner
+                    ? DeleteButton(
+                      isLoading: _isLoading,
+                      handle: () => _deleteGroupTask(),
+                    )
+                    : SizedBox(),
               ],
             ),
           ),

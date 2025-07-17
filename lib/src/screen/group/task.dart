@@ -27,7 +27,11 @@ class _GroupTaskScreenState extends State<GroupTaskScreen> {
   @override
   void initState() {
     super.initState();
-    _groupTasks = TaskService().getTasks(status: 'Pending', isGroupTask: true);
+    _groupTasks = TaskService().getTasks(
+      status: 'Pending',
+      isGroupTask: true,
+      isByUser: true,
+    );
     _groupProject = GroupTaskService().getGroupTasks();
     _loadGroupdTasks();
     TaskScreenCallbackRegistry.refresh = _refreshGroupTasks;
@@ -42,6 +46,7 @@ class _GroupTaskScreenState extends State<GroupTaskScreen> {
       _groupTasks = TaskService().getTasks(
         status: 'Pending',
         isGroupTask: true,
+        isByUser: true,
       );
       _groupProject = GroupTaskService().getGroupTasks();
     });
@@ -73,15 +78,10 @@ class _GroupTaskScreenState extends State<GroupTaskScreen> {
                           .toSet();
                   final projectIds = groupProjects.map((g) => g.id).toSet();
 
-                  final allGroupTaskIds = {...taskGroupIds, ...projectIds};
-
-                  final allGroupTasks =
-                      groupProjects
-                          .where((g) => allGroupTaskIds.contains(g.id))
-                          .toList();
+                  final allGroupTasks = groupProjects;
 
                   final Map<String, List<GroupTask>> groupedProjects = {};
-                  
+
                   for (final project in allGroupTasks) {
                     Task? relatedTask;
                     final filtered = tasks.where(

@@ -34,13 +34,21 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
   void initState() {
     super.initState();
     _categories = CategoryService().getCategorys();
-    _tasks = TaskService().getTasks(status: 'Pending', isGroupTask: false);
+    _tasks = TaskService().getTasks(
+      status: 'Pending',
+      isGroupTask: false,
+      isByUser: true,
+    );
     _initTasksFuture = _loadFilteredTasks();
     TaskScreenCallbackRegistry.refresh = refreshTask;
   }
 
   Future<void> refreshTask() async {
-    _tasks = TaskService().getTasks(status: 'Pending', isGroupTask: false);
+    _tasks = TaskService().getTasks(
+      status: 'Pending',
+      isGroupTask: false,
+      isByUser: true,
+    );
     _initTasksFuture = _loadFilteredTasks();
     setState(() {});
   }
@@ -132,6 +140,7 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
 
   void _onCategorySelected(String categoryName) {
     setState(() {
+      _deleteModeCategories.clear();
       selectedCategory = categoryName;
       _initTasksFuture = _loadFilteredTasks();
     });
@@ -196,234 +205,261 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
     return Scaffold(
       appBar: CustomAppBar(title: 'Personal', isCenterTitle: false),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: FutureBuilder<List<Category>?>(
-                future: _categories,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  } else if (snapshot.hasError) {
-                    UINotify.error(context, 'Error: ${snapshot.error}');
-                    return Text('');
-                  } else if (!snapshot.hasData || snapshot.data == null) {
-                    UINotify.error(context, 'No categories found');
-                    return const Text('');
-                  }
+        child: GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
 
-                  final categories = snapshot.data!;
+            if (_deleteModeCategories.isNotEmpty) {
+              setState(() {
+                _deleteModeCategories.clear();
+              });
+            }
+          },
+          behavior: HitTestBehavior.translucent,
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: FutureBuilder<List<Category>?>(
+                  future: _categories,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    } else if (snapshot.hasError) {
+                      UINotify.error(context, 'Error: ${snapshot.error}');
+                      return Text('');
+                    } else if (!snapshot.hasData || snapshot.data == null) {
+                      UINotify.error(context, 'No categories found');
+                      return const Text('');
+                    }
 
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildCategoryButton(
-                        name: 'All',
-                        isSelected: selectedCategory == 'All',
-                        onTap: () => _onCategorySelected('All'),
-                      ),
-                      ...categories
-                          .where((c) => c.name != 'All')
-                          .map(
-                            (c) => _buildCategoryButton(
-                              name: c.name,
-                              isSelected: selectedCategory == c.name,
-                              onTap: () => _onCategorySelected(c.name),
-                              onDelete: () async {
-                                setState(() {
-                                  _deleteModeCategories.remove(c.name);
-                                });
-                                await _deleteCategory(c.id);
-                              },
+                    final categories = snapshot.data!;
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildCategoryButton(
+                          name: 'All',
+                          isSelected: selectedCategory == 'All',
+                          onTap: () => _onCategorySelected('All'),
+                        ),
+                        ...categories
+                            .where((c) => c.name != 'All')
+                            .map(
+                              (c) => _buildCategoryButton(
+                                name: c.name,
+                                isSelected: selectedCategory == c.name,
+                                onTap: () => _onCategorySelected(c.name),
+                                onDelete:
+                                    c.name == 'Others'
+                                        ? null
+                                        : () async {
+                                          setState(() {
+                                            _deleteModeCategories.remove(
+                                              c.name,
+                                            );
+                                          });
+                                          await _deleteCategory(c.id);
+                                        },
+                              ),
+                            ),
+                        const SizedBox(width: 15),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10, bottom: 10),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: TAppTheme.primaryColor,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.grey,
+                                  blurRadius: 3,
+                                  offset: Offset(3, 3),
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.add),
+                              onPressed: () => _showAddCategoryDialog(context),
                             ),
                           ),
-                      const SizedBox(width: 15),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10, bottom: 10),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: TAppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.grey,
-                                blurRadius: 3,
-                                offset: Offset(3, 3),
-                                spreadRadius: 1,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: FutureBuilder(
+                  future: _initTasksFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final Map<String, List<Task>> groupedTasks = {};
+
+                    for (var task in _filteredTasks ?? []) {
+                      DateTime deadlineDate;
+                      try {
+                        deadlineDate = DateFormat(
+                          'd MMMM yyyy',
+                        ).parse(task.deadlinesDate);
+                      } catch (_) {
+                        deadlineDate = DateTime.now();
+                      }
+
+                      final formattedDate = DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(deadlineDate);
+                      final dateLabel =
+                          formattedDate ==
+                                  DateFormat(
+                                    'dd/MM/yyyy',
+                                  ).format(DateTime.now())
+                              ? 'Today'
+                              : formattedDate;
+
+                      groupedTasks.putIfAbsent(dateLabel, () => []).add(task);
+                    }
+
+                    return groupedTasks.isEmpty
+                        ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/images/empty.png',
+                                width: 100,
+                              ),
+                              const Text(
+                                'There are no tasks at the moment.\nThis is your chance to create something\nexciting and make it happen!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.black,
+                                  fontSize: 14,
+                                ),
                               ),
                             ],
                           ),
-                          child: IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () => _showAddCategoryDialog(context),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: FutureBuilder(
-                future: _initTasksFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final Map<String, List<Task>> groupedTasks = {};
-
-                  for (var task in _filteredTasks ?? []) {
-                    DateTime deadlineDate;
-                    try {
-                      deadlineDate = DateFormat(
-                        'd MMMM yyyy',
-                      ).parse(task.deadlinesDate);
-                    } catch (_) {
-                      deadlineDate = DateTime.now();
-                    }
-
-                    final formattedDate = DateFormat(
-                      'dd/MM/yyyy',
-                    ).format(deadlineDate);
-                    final dateLabel =
-                        formattedDate ==
-                                DateFormat('dd/MM/yyyy').format(DateTime.now())
-                            ? 'Today'
-                            : formattedDate;
-
-                    groupedTasks.putIfAbsent(dateLabel, () => []).add(task);
-                  }
-
-                  return groupedTasks.isEmpty
-                      ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Image.asset('assets/images/empty.png', width: 100),
-                            const Text(
-                              'There are no tasks at the moment.\nThis is your chance to create something\nexciting and make it happen!',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppColors.black,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                      : ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                        children:
-                            groupedTasks.entries.map((entry) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    entry.key,
-                                    style: TextStyle(
-                                      color: AppColors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
+                        )
+                        : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                          children:
+                              groupedTasks.entries.map((entry) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      entry.key,
+                                      style: TextStyle(
+                                        color: AppColors.black,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  ...entry.value.map((t) {
-                                    return Container(
-                                      margin: const EdgeInsets.only(bottom: 10),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: TAppTheme.primaryColor,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: AppColors.grey,
-                                            offset: Offset(2, 2),
-                                            blurRadius: 3,
+                                    const SizedBox(height: 10),
+                                    ...entry.value.map((t) {
+                                      return Container(
+                                        margin: const EdgeInsets.only(
+                                          bottom: 10,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: TAppTheme.primaryColor,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const SizedBox(width: 5),
-                                          GestureDetector(
-                                            onTap:
-                                                () =>
-                                                    t.status == 'Completed'
-                                                        ? _updateTaskStatus(
-                                                          task: t,
-                                                          status: 'Pending',
-                                                        )
-                                                        : _updateTaskStatus(
-                                                          task: t,
-                                                          status: 'Completed',
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: AppColors.grey,
+                                              offset: Offset(2, 2),
+                                              blurRadius: 3,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const SizedBox(width: 5),
+                                            GestureDetector(
+                                              onTap:
+                                                  () =>
+                                                      t.status == 'Completed'
+                                                          ? _updateTaskStatus(
+                                                            task: t,
+                                                            status: 'Pending',
+                                                          )
+                                                          : _updateTaskStatus(
+                                                            task: t,
+                                                            status: 'Completed',
+                                                          ),
+                                              child: Container(
+                                                width: 18,
+                                                height: 18,
+                                                margin: const EdgeInsets.only(
+                                                  right: 6,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    width: 2,
+                                                    color:
+                                                        Utils.getPriorityColor(
+                                                          t.priority,
                                                         ),
-                                            child: Container(
-                                              width: 18,
-                                              height: 18,
-                                              margin: const EdgeInsets.only(
-                                                right: 6,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  width: 2,
-                                                  color: Utils.getPriorityColor(
-                                                    t.priority,
                                                   ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          TextButton(
-                                            onPressed:
-                                                () => context.pushRoute(
-                                                  PersonalTaskDetailsRoute(
-                                                    task: t,
-                                                    afterTaskSave: (
-                                                      Task? newTask,
-                                                    ) {
-                                                      if (newTask == null) {
-                                                        print(
-                                                          'Edit pop back error',
-                                                        );
-                                                        return;
-                                                      }
-                                                      refreshTask();
-                                                    },
+                                            TextButton(
+                                              onPressed:
+                                                  () => context.pushRoute(
+                                                    PersonalTaskDetailsRoute(
+                                                      task: t,
+                                                      afterTaskSave: (
+                                                        Task? newTask,
+                                                      ) {
+                                                        if (newTask == null) {
+                                                          print(
+                                                            'Edit pop back error',
+                                                          );
+                                                          return;
+                                                        }
+                                                        refreshTask();
+                                                      },
+                                                    ),
                                                   ),
+                                              child: Text(
+                                                t.title,
+                                                style: TextStyle(
+                                                  color: AppColors.black,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
-                                            child: Text(
-                                              t.title,
-                                              style: TextStyle(
-                                                color: AppColors.black,
-                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              );
-                            }).toList(),
-                      );
-                },
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                );
+                              }).toList(),
+                        );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -441,6 +477,7 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
       onLongPress:
           () => setState(() {
             if (name != 'All' && name != 'Others') {
+              _deleteModeCategories.clear();
               _deleteModeCategories.add(name);
             }
           }),

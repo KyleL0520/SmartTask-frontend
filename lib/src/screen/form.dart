@@ -125,6 +125,7 @@ class _FormScreenState extends State<FormScreen> {
 
       _allTasksInGroup = TaskService().getTasks(
         groupTaskId: widget.groupTask!.id,
+        isByUser: false,
       );
       _allTasksInGroup.then((tasks) {
         if (tasks != null && tasks.isNotEmpty) {
@@ -193,6 +194,9 @@ class _FormScreenState extends State<FormScreen> {
     });
 
     if (!_checkReminder()) {
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
@@ -222,6 +226,34 @@ class _FormScreenState extends State<FormScreen> {
     }
   }
 
+  Future<void> _handleCreateTaskAI() async {
+    if (_ai.text.isEmpty) {
+      if (!mounted) return;
+      UINotify.error(context, 'Task description is required');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await TaskService().createTaskAI(description: _ai.text.trim());
+
+      if (!mounted) return;
+      UINotify.success(context, 'Task added');
+      widget.afterTaskSave!(null);
+      AutoRouter.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      UINotify.error(context, e);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _handleEditTask() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -230,6 +262,9 @@ class _FormScreenState extends State<FormScreen> {
     });
 
     if (!_checkReminder()) {
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
@@ -659,7 +694,7 @@ class _FormScreenState extends State<FormScreen> {
                       } else if (widget.groupTask != null) {
                         _handleEditGroupTask();
                       } else if (_isPersonal) {
-                        _handleCreateTask();
+                        _isTask ? _handleCreateTask() : _handleCreateTaskAI();
                       } else {
                         _handleCreateGroupTask();
                       }

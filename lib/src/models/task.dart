@@ -21,6 +21,7 @@ class Task {
   String status;
   bool isExpired;
   bool isApproved;
+  bool? isReminderSent;
   GroupTask? groupTask;
 
   Task({
@@ -34,9 +35,10 @@ class Task {
     this.priority,
     this.reminderDate,
     this.reminderTime,
-    required this.status,
+    this.status = 'Pending',
     this.isExpired = false,
     this.isApproved = false,
+    this.isReminderSent = false,
     this.groupTask,
   });
 

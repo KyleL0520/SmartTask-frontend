@@ -238,7 +238,7 @@ class DescriptionField extends StatelessWidget {
             ),
           ),
           maxLines: 4,
-          maxLength: 100,
+          maxLength: 130,
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
               return 'Please enter the task description';
@@ -283,8 +283,8 @@ class TaskField extends StatelessWidget {
           borderSide: BorderSide(color: AppColors.grey, width: 1.5),
         ),
       ),
-      maxLength: 20,
-      inputFormatters: [LengthLimitingTextInputFormatter(20)],
+      maxLength: 25,
+      inputFormatters: [LengthLimitingTextInputFormatter(25)],
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return emptyMessage;
@@ -324,9 +324,10 @@ class _DatePickerState extends State<DatePicker> {
     return Expanded(
       child: TextFormField(
         controller: widget.controller,
+        style: TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: 'Select date',
-          hintStyle: TextStyle(color: AppColors.grey),
+          hintStyle: TextStyle(color: AppColors.grey, fontSize: 14),
           filled: true,
           fillColor: Colors.transparent,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -417,9 +418,10 @@ class _TimeickerState extends State<TimePicker> {
     return Expanded(
       child: TextFormField(
         controller: widget.controller,
+        style: TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: 'Select time',
-          hintStyle: TextStyle(color: AppColors.grey),
+          hintStyle: TextStyle(color: AppColors.grey, fontSize: 14),
           filled: true,
           fillColor: Colors.transparent,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
