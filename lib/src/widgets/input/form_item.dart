@@ -722,6 +722,7 @@ class AIField extends StatelessWidget {
             ),
           ),
           maxLines: 10,
+          maxLength: 130,
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
               return 'Please enter the task description';

@@ -421,29 +421,34 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
                                                 ),
                                               ),
                                             ),
-                                            TextButton(
-                                              onPressed:
-                                                  () => context.pushRoute(
-                                                    PersonalTaskDetailsRoute(
-                                                      task: t,
-                                                      afterTaskSave: (
-                                                        Task? newTask,
-                                                      ) {
-                                                        if (newTask == null) {
-                                                          print(
-                                                            'Edit pop back error',
-                                                          );
-                                                          return;
-                                                        }
-                                                        refreshTask();
-                                                      },
+                                            Expanded(
+                                              child: TextButton(
+                                                onPressed:
+                                                    () => context.pushRoute(
+                                                      PersonalTaskDetailsRoute(
+                                                        task: t,
+                                                        afterTaskSave: (
+                                                          Task? newTask,
+                                                        ) {
+                                                          if (newTask == null) {
+                                                            print(
+                                                              'Edit pop back error',
+                                                            );
+                                                            return;
+                                                          }
+                                                          refreshTask();
+                                                        },
+                                                      ),
                                                     ),
+                                                child: Text(
+                                                  t.title,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  maxLines: 1,
+                                                  style: TextStyle(
+                                                    color: AppColors.black,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
-                                              child: Text(
-                                                t.title,
-                                                style: TextStyle(
-                                                  color: AppColors.black,
-                                                  fontWeight: FontWeight.bold,
                                                 ),
                                               ),
                                             ),

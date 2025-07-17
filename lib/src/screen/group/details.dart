@@ -421,7 +421,7 @@ class _GroupTaskDetailsScreenState extends State<GroupTaskDetailsScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                user == _groupTask.owner
+                user?.uid == _groupTask.owner.uid
                     ? DeleteButton(
                       isLoading: _isLoading,
                       handle: () => _deleteGroupTask(),

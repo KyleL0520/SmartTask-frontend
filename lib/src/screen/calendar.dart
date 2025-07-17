@@ -20,7 +20,7 @@ class CalendarScreen extends StatefulWidget {
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
- 
+
 class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime dateTime;
   late String date;
@@ -302,18 +302,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                                     : SizedBox(),
                                           ),
                                         ),
-                                        TextButton(
-                                          onPressed:
-                                              () => context.pushRoute(
-                                                PersonalTaskDetailsRoute(
-                                                  task: task,
+                                        Expanded(
+                                          child: TextButton(
+                                            onPressed:
+                                                () => context.pushRoute(
+                                                  PersonalTaskDetailsRoute(
+                                                    task: task,
+                                                  ),
                                                 ),
+                                            child: Text(
+                                              task.title,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: TextStyle(
+                                                color: AppColors.black,
+                                                fontWeight: FontWeight.bold,
                                               ),
-                                          child: Text(
-                                            task.title,
-                                            style: TextStyle(
-                                              color: AppColors.black,
-                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
