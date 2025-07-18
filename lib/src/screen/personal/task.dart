@@ -74,7 +74,7 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
             time.minute,
           );
         } catch (_) {
-          return DateTime.now();
+          return DateTime.now().toUtc().add(const Duration(hours: 8));
         }
       }
 
@@ -319,9 +319,11 @@ class PersonalTaskScreenState extends State<PersonalTaskScreen> {
                       ).format(deadlineDate);
                       final dateLabel =
                           formattedDate ==
-                                  DateFormat(
-                                    'dd/MM/yyyy',
-                                  ).format(DateTime.now())
+                                  DateFormat('dd/MM/yyyy').format(
+                                    DateTime.now().toUtc().add(
+                                      const Duration(hours: 8),
+                                    ),
+                                  )
                               ? 'Today'
                               : formattedDate;
 

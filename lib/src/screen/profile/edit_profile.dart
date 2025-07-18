@@ -120,7 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   )
                                   : _avatar.startsWith('http')
                                   ? Image.network(
-                                    '$_avatar?v=${DateTime.now().millisecondsSinceEpoch}',
+                                    '$_avatar?v=${DateTime.now().toUtc().add(const Duration(hours: 8)).millisecondsSinceEpoch}',
                                     key: ValueKey(_avatar),
                                     width: 120,
                                     height: 120,

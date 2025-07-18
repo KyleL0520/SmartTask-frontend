@@ -54,6 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (user != null) {
+        setState(() {
+          _isLoading = false;
+        });
+
         UINotify.success(context, "Welcome.");
         widget.onResult?.call(true);
       } else {

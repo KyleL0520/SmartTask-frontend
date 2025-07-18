@@ -315,7 +315,7 @@ class _DatePickerState extends State<DatePicker> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc().add(const Duration(hours: 8));
     dateTime = now;
   }
 
@@ -409,7 +409,7 @@ class _TimeickerState extends State<TimePicker> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc().add(const Duration(hours: 8));
     dateTime = now;
   }
 

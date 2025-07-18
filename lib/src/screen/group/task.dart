@@ -101,14 +101,14 @@ class _GroupTaskScreenState extends State<GroupTaskScreen> {
                               ? DateFormat(
                                 'd MMMM yyyy',
                               ).parse(relatedTask.deadlinesDate)
-                              : DateTime.now();
+                              : DateTime.now().toUtc().add(const Duration(hours: 8));
 
                       final deadlineTime =
                           relatedTask != null
                               ? DateFormat(
                                 'hh : mm a',
                               ).parse(relatedTask.deadlinesTime)
-                              : DateTime.now();
+                              : DateTime.now().toUtc().add(const Duration(hours: 8));
 
                       deadline = DateTime(
                         deadlineDate.year,
@@ -118,7 +118,7 @@ class _GroupTaskScreenState extends State<GroupTaskScreen> {
                         deadlineTime.minute,
                       );
                     } catch (_) {
-                      deadline = DateTime.now();
+                      deadline = DateTime.now().toUtc().add(const Duration(hours: 8));
                     }
 
                     final formattedDate = DateFormat(

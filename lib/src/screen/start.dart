@@ -24,6 +24,7 @@ class _StartScreenState extends State<StartScreen> {
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(seconds: 2));
 
+    if (!mounted) return;
     final authStorage = context.read<AuthStorage>();
 
     if (!mounted) return;
